@@ -1,2 +1,6 @@
 **/.DS_Store
 xcuserdata/
+build/
+release/
+图标预览/
+*.zip
