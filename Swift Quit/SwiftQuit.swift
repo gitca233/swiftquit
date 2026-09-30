@@ -7,6 +7,7 @@
 
 import Foundation
 import AppKit
+import CoreGraphics
 import AXSwift
 import Swindler
 import PromiseKit
@@ -119,7 +120,7 @@ class SwiftQuit {
                         
                         let closeDelay = Int(swiftQuitSettings["closeDelay"] ?? "2") ?? 2
                         DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(closeDelay)) {
-                            if eventApp.knownWindows.isEmpty {
+                            if eventApp.knownWindows.isEmpty || !SwiftQuit.hasVisibleWindows(pid: pid) {
                                 terminateApplication(app: app)
                             }
                         }
@@ -135,6 +136,20 @@ class SwiftQuit {
         return (swiftQuitSettings["excludeBehaviour"] == "excludeApps" && !swiftQuitExcludedApps.contains(applicationName)) || (swiftQuitSettings["excludeBehaviour"] == "includeApps" && swiftQuitExcludedApps.contains(applicationName))
     }
     
+    class func hasVisibleWindows(pid: Int32) -> Bool {
+        guard let windows = CGWindowListCopyWindowInfo([.optionAll], kCGNullWindowID) as? [[String: Any]] else {
+            return false
+        }
+        for info in windows {
+            guard let ownerPID = info[kCGWindowOwnerPID as String] as? NSNumber else { continue }
+            if ownerPID.int32Value == pid,
+               info[kCGWindowIsOnscreen as String] as? Bool == true {
+                return true
+            }
+        }
+        return false
+    }
+
     class func terminateApplication(app:NSRunningApplication) {
         print("Terminated " + (app.localizedName ?? "<no_name>"))
         app.terminate()
